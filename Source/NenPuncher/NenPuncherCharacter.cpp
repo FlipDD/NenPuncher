@@ -5,9 +5,11 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Particles/ParticleSystemComponent.h"
 
 ANenPuncherCharacter::ANenPuncherCharacter()
 {
@@ -39,6 +41,9 @@ ANenPuncherCharacter::ANenPuncherCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	ChargedParticlesComponent = CreateDefaultSubobject<UParticleSystemComponent>("ChargingPunchParticles");
+	ChargedParticlesComponent->SetupAttachment(GetMesh(), FName("RightHand"));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -52,6 +57,9 @@ void ANenPuncherCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("LeftClick", IE_Pressed, this, &ANenPuncherCharacter::Punch);
+
+	PlayerInputComponent->BindAction("RightClick", IE_Pressed, this, &ANenPuncherCharacter::ChargePunch);
+	PlayerInputComponent->BindAction("RightClick", IE_Released, this, &ANenPuncherCharacter::ReleasePunch);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ANenPuncherCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ANenPuncherCharacter::MoveRight);
@@ -71,46 +79,63 @@ void ANenPuncherCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 // Attacks
 void ANenPuncherCharacter::Punch()
 {
-	if (!CanAttack)
-		return;
-
 	// Rotate to nearest + looking target here
-	if (GetCharacterMovement()->IsMovingOnGround())
+	if (GetCharacterMovement()->IsMovingOnGround() && CanAttack)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Second punch maybe?"));
 
 		switch (AttackCount)
 		{
 		case 0:
-			if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(FirstPunchMontage))
-				return;
-
-			PlayAnimMontage(FirstPunchMontage);
-			GetCharacterMovement()->AddImpulse(GetActorForwardVector() * ImpulseForce);
+			if (!GetMesh()->GetAnimInstance()->Montage_IsPlaying(FirstPunchMontage))
+			{
+				PlayAnimMontage(FirstPunchMontage);
+				AttackCount++;
+				CanAttack = false;
+			}
 			break;
 
 		case 1:
-			if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(SecondPunchMontage))
-				return;
-
-			PlayAnimMontage(SecondPunchMontage);
-			GetCharacterMovement()->AddImpulse(GetActorForwardVector() * ImpulseForce);
+			if (!GetMesh()->GetAnimInstance()->Montage_IsPlaying(SecondPunchMontage))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Second punch?"));
+				PlayAnimMontage(SecondPunchMontage);
+				AttackCount++;
+				CanAttack = false;
+			}
 			break;
 
 		case 2:
-			if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(ThirdPunchMontage))
-				return;
-
-			PlayAnimMontage(ThirdPunchMontage);
-			
+			if (!GetMesh()->GetAnimInstance()->Montage_IsPlaying(ThirdPunchMontage))
+			{
+				PlayAnimMontage(ThirdPunchMontage);
+				AttackCount = 0;
+				CanAttack = false;
+			}
 			break;
 		}
 	}
 	else if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Falling)
 	{
-		PlayAnimMontage(PunchDownMontage);
-		GetCharacterMovement()->StopMovementImmediately();
-		AddActorLocalRotation(FRotator(45, 0, 0));
+		if (!GetMesh()->GetAnimInstance()->Montage_IsPlaying(PunchDownMontage))
+		{
+			PlayAnimMontage(PunchDownMontage);
+			GetCharacterMovement()->StopMovementImmediately();
+			AddActorLocalRotation(FRotator(-45, 0, 0));
+		}
 	}
+}
+
+void ANenPuncherCharacter::ChargePunch()
+{
+	PlayAnimMontage(ChargedPunchMontage);
+	ChargedParticlesComponent->Activate(true);
+}
+
+void ANenPuncherCharacter::ReleasePunch()
+{
+	PlayAnimMontage(ChargedPunchMontage, 1, FName("End"));
+	ChargedParticlesComponent->Deactivate();
 }
 
 void ANenPuncherCharacter::AddAttackImpulse(float Multiplier)
@@ -118,16 +143,12 @@ void ANenPuncherCharacter::AddAttackImpulse(float Multiplier)
 	GetCharacterMovement()->AddImpulse((GetActorForwardVector() - GetActorUpVector()) * (ImpulseForce * Multiplier));
 }
 
-void ANenPuncherCharacter::SetCanAttack(bool CanAttackValue)
+void ANenPuncherCharacter::EnableCanAttack()
 {
-	CanAttack = CanAttackValue;
+	CanAttack = true;
 }
 
-void ANenPuncherCharacter::IncrementAttackCount()
-{
-	AttackCount++;
-}
-
+// TODO - delete the increment count notify
 void ANenPuncherCharacter::ResetAttackCount()
 {
 	AttackCount = 0;

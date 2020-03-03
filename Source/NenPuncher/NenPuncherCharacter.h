@@ -18,6 +18,10 @@ class ANenPuncherCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	/** Charging Particles */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		class UParticleSystemComponent* ChargedParticlesComponent;
 public:
 	ANenPuncherCharacter();
 
@@ -47,16 +51,20 @@ private:
 	/** Attacks */
 	void Punch();
 
-	int AttackCount = 0;
-	bool CanAttack = true;
+	void ChargePunch();
+	void ReleasePunch();
+
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		int AttackCount = 0;
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		bool CanAttack = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CombatVariables", meta = (AllowPrivateAccess = "true"))
 		float ImpulseForce = 200;
 
 public:
 	void AddAttackImpulse(float Multiplier);
-	void SetCanAttack(bool CanAttackValue);
-	void IncrementAttackCount();
+	void EnableCanAttack();
 	void ResetAttackCount();
 
 protected:
