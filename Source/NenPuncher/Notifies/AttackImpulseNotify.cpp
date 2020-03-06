@@ -5,7 +5,7 @@
 
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "NenPuncherCharacter.h"
+#include "Player/NenPuncherCharacter.h"
 
 void UAttackImpulseNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {

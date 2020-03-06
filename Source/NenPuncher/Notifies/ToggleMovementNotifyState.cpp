@@ -4,14 +4,22 @@
 
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "NenPuncherCharacter.h"
+#include "GameFramework/Controller.h"
+#include "Player/NenPuncherCharacter.h"
 
 void UToggleMovementNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
 {
 	if (MeshComp->GetOwner() != nullptr)
 	{
 		auto Player = Cast<ANenPuncherCharacter>(MeshComp->GetOwner());
-		if (Player != nullptr) { Player->GetCharacterMovement()->MaxWalkSpeed = 0; }
+		if (Player != nullptr)
+		{
+			auto Controller = Cast<AController>(Player->GetController());
+			if (Controller != nullptr)
+			{
+				Controller->SetIgnoreMoveInput(true);
+			}
+		}
 	}
 }
 
@@ -20,7 +28,14 @@ void  UToggleMovementNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UA
 	if (MeshComp->GetOwner() != nullptr)
 	{
 		auto Player = Cast<ANenPuncherCharacter>(MeshComp->GetOwner());
-		if (Player != nullptr) { Player->GetCharacterMovement()->MaxWalkSpeed = 600; }
+		if (Player != nullptr)
+		{
+			auto Controller = Cast<AController>(Player->GetController());
+			if (Controller != nullptr)
+			{
+				Controller->SetIgnoreMoveInput(false);
+			}
+		}
 	}
 }
 
