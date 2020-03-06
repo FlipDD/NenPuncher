@@ -64,6 +64,8 @@ private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		bool IsComboing = false;
 
+	AActor* GetClosestEnemy();
+
 public:
 	/** Left click Attacks */
 	void Punch();

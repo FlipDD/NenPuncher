@@ -9,7 +9,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Particles/ParticleSystemComponent.h"
+
+#include "Enemy.h"
 
 ANenPuncherCharacter::ANenPuncherCharacter()
 {
@@ -124,6 +127,58 @@ void ANenPuncherCharacter::PlayThirdPunch()
 	{
 		SetStateDefault();
 	}
+}
+
+AActor* ANenPuncherCharacter::GetClosestEnemy()
+{
+	auto World = GetWorld();
+	if (!ensure(World != nullptr))
+		return nullptr;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+	
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+	TArray<FHitResult> OutHit;
+
+	UKismetSystemLibrary::SphereTraceMultiForObjects(
+		World,
+		GetActorLocation(),
+		GetActorLocation() + (GetActorForwardVector() * 30),
+		300,
+		ObjectTypes,
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		OutHit,
+		true);
+
+	float Distance = MAX_FLT;
+	AActor* ClosestActor = nullptr;
+	for (auto hit : OutHit)
+	{
+		auto Actor = Cast<AActor>(hit.Actor);
+		if (Actor)
+		{
+			FString Name = Actor->GetName();
+			UE_LOG(LogTemp, Warning, TEXT("Actor hit name is: %s"), &Name);
+
+			auto Enemy = Cast<AEnemy>(Actor);
+			if (Enemy)
+			{
+				float NewDistance = (GetActorLocation() - Enemy->GetActorLocation()).Size();
+				if (NewDistance < Distance)
+				{
+					Distance = NewDistance;
+					ClosestActor = ClosestActor;
+				}
+			}
+		}
+	}
+	
+	return ClosestActor;
 }
 
 void ANenPuncherCharacter::SetStateDefault()
