@@ -19,6 +19,4 @@ public:
 	
 	UPROPERTY(EditAnywhere)
 		float ImpulseForce = 5000;
-	UPROPERTY(EditAnywhere)
-		bool DownwardsAttack = false;
 };

@@ -9,7 +9,8 @@
 UENUM(BlueprintType)
 enum class StateEnum : uint8
 {
-	Attacking UMETA(DisplayName = "Attacking"),
+	Comboing UMETA(DisplayName = "Comboing"),
+	DownAttack UMETA(DisplayName = "DownAttack"),
 	Default UMETA(DisplayName = "Default")
 };
 
@@ -20,11 +21,11 @@ class ANenPuncherCharacter : public ACharacter
 
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
+		class USpringArmComponent* CameraBoom;
 
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class UCameraComponent* FollowCamera;
+		class UCameraComponent* FollowCamera;
 
 	/** Charging Particles */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -52,19 +53,30 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Animations")
 		UAnimMontage* ChargedPunchMontage;
 
+	UPROPERTY(EditAnywhere, Category = "Animations")
+		UAnimMontage* DoubleJumpMontage;
+
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = InitialValues, meta = (AllowPrivateAccess = "true"))
 		StateEnum State = StateEnum::Default;
+
+	virtual void Landed(const FHitResult& Hit) override;
 
 	/** Right click Attacks */
 	void ChargePunch();
 	void ReleasePunch();
 
-	/** Fighting variables */
+	void CustomJump();
+
+	/** Variables */
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		bool IsComboing = false;
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		bool CanDoubleJump = false;
+	UPROPERTY(EditDefaultsOnly, Category = "Particles", meta = (AllowPrivateAccess = "true"))
+		class UParticleSystemComponent* DownwardsHitParticle;
 
-	AActor* GetClosestEnemy();
+	void OnPlayerHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
 
 public:
 	/** Left click Attacks */
@@ -74,6 +86,8 @@ public:
 
 	void AddAttackImpulse(float ImpulseForce, bool IsGroundAttack = true);
 	void SetStateDefault();
+
+	AActor* GetClosestEnemy();
 
 protected:
 

@@ -14,10 +14,7 @@ void UAttackImpulseNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenc
 		auto Player = Cast<ANenPuncherCharacter>(MeshComp->GetOwner());
 		if (Player != nullptr)
 		{
-			if (!DownwardsAttack)
-				Player->GetCharacterMovement()->AddImpulse(Player->GetActorForwardVector() * ImpulseForce);
-			else
-				Player->GetCharacterMovement()->AddImpulse((Player->GetActorForwardVector() - Player->GetActorUpVector()) * ImpulseForce);
+			Player->GetCharacterMovement()->AddImpulse(Player->GetActorForwardVector() * ImpulseForce);
 		}
 	}
 }

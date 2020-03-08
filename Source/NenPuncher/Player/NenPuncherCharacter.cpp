@@ -9,10 +9,16 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Particles/ParticleSystemComponent.h"
 
 #include "Enemy.h"
+
+#include <Runtime/Engine/Classes/Engine/Engine.h>
+
+#define print(text) if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 1.5, FColor::White,text)
 
 ANenPuncherCharacter::ANenPuncherCharacter()
 {
@@ -47,6 +53,11 @@ ANenPuncherCharacter::ANenPuncherCharacter()
 
 	ChargedParticlesComponent = CreateDefaultSubobject<UParticleSystemComponent>("ChargingPunchParticles");
 	ChargedParticlesComponent->SetupAttachment(GetMesh(), FName("RightHand"));
+
+	DownwardsHitParticle = CreateDefaultSubobject<UParticleSystemComponent>("DownwardsPunchParticles");
+	ChargedParticlesComponent->SetupAttachment(GetMesh(), FName("RightHand"));
+
+	OnActorHit.AddDynamic(this, &ANenPuncherCharacter::OnPlayerHit);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -56,7 +67,7 @@ void ANenPuncherCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ANenPuncherCharacter::CustomJump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("LeftClick", IE_Pressed, this, &ANenPuncherCharacter::Punch);
@@ -70,7 +81,25 @@ void ANenPuncherCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("TurnRate", this, &ANenPuncherCharacter::TurnAtRate);
 	
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &ANenPuncherCharacter::LookUpAtRate);
+}
+
+void ANenPuncherCharacter::OnPlayerHit(AActor * SelfActor, AActor * OtherActor, FVector NormalImpulse, const FHitResult & Hit)
+{
+	if (State == StateEnum::DownAttack && (OtherActor != nullptr) && (OtherActor != this))
+	{
+		State = StateEnum::Default;
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+		FRotator OldRotation = GetActorRotation();
+		SetActorRotation(FRotator(0, OldRotation.Yaw, OldRotation.Roll));
+
+		auto Enemy = Cast<AEnemy>(OtherActor);
+		if (Enemy)
+		{
+			DownwardsHitParticle->Activate(true);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -82,21 +111,27 @@ void ANenPuncherCharacter::Punch()
 	{
 		if (GetCharacterMovement()->IsMovingOnGround())
 		{
-			State = StateEnum::Attacking;
+			State = StateEnum::Comboing;
 			PlayAnimMontage(FirstPunchMontage);
 		}
 		else if (GetCharacterMovement()->MovementMode == EMovementMode::MOVE_Falling)
 		{
-			// REVIEW with punch down and start combo rigth away <----------------------------
+			// REVIEW with punch down and start combo right away <----------------------------
 			if (!GetMesh()->GetAnimInstance()->Montage_IsPlaying(PunchDownMontage))
 			{
+				if (GetClosestEnemy() == nullptr)
+				{
+					print("No actor was found nearby");
+					return;
+				}
+				State = StateEnum::DownAttack;
+
 				PlayAnimMontage(PunchDownMontage);
-				GetCharacterMovement()->StopMovementImmediately();
-				AddActorLocalRotation(FRotator(-45, 0, 0));
+				GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
 			}
 		}
 	}
-	else if (State == StateEnum::Attacking)
+	else if (State == StateEnum::Comboing)
 	{
 		IsComboing = true;
 	}
@@ -131,12 +166,8 @@ void ANenPuncherCharacter::PlayThirdPunch()
 
 AActor* ANenPuncherCharacter::GetClosestEnemy()
 {
-	auto World = GetWorld();
-	if (!ensure(World != nullptr))
-		return nullptr;
-
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_WorldStatic));
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECollisionChannel::ECC_Pawn));
 	
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(this);
@@ -144,10 +175,10 @@ AActor* ANenPuncherCharacter::GetClosestEnemy()
 	TArray<FHitResult> OutHit;
 
 	UKismetSystemLibrary::SphereTraceMultiForObjects(
-		World,
+		GetWorld(),
 		GetActorLocation(),
 		GetActorLocation() + (GetActorForwardVector() * 30),
-		300,
+		3000,
 		ObjectTypes,
 		false,
 		ActorsToIgnore,
@@ -162,9 +193,6 @@ AActor* ANenPuncherCharacter::GetClosestEnemy()
 		auto Actor = Cast<AActor>(hit.Actor);
 		if (Actor)
 		{
-			FString Name = Actor->GetName();
-			UE_LOG(LogTemp, Warning, TEXT("Actor hit name is: %s"), &Name);
-
 			auto Enemy = Cast<AEnemy>(Actor);
 			if (Enemy)
 			{
@@ -172,7 +200,7 @@ AActor* ANenPuncherCharacter::GetClosestEnemy()
 				if (NewDistance < Distance)
 				{
 					Distance = NewDistance;
-					ClosestActor = ClosestActor;
+					ClosestActor = Actor;
 				}
 			}
 		}
@@ -194,8 +222,39 @@ void ANenPuncherCharacter::ChargePunch()
 
 void ANenPuncherCharacter::ReleasePunch()
 {
-	PlayAnimMontage(ChargedPunchMontage, 1, FName("End"));
+	if (GetMesh()->GetAnimInstance()->Montage_GetCurrentSection() == "Loop")
+	{
+		PlayAnimMontage(ChargedPunchMontage, 1, FName("End"));
+	}
+	else
+	{
+		PlayAnimMontage(ChargedPunchMontage, -1);
+	}
+
 	ChargedParticlesComponent->Deactivate();
+}
+
+void ANenPuncherCharacter::CustomJump()
+{
+	if (CanDoubleJump)
+	{
+		CanDoubleJump = false;
+		GetCharacterMovement()->AddImpulse(GetActorUpVector() * 100000);
+		PlayAnimMontage(DoubleJumpMontage);
+	}
+	else if (GetCharacterMovement()->IsMovingOnGround())
+	{
+		Jump();
+		CanDoubleJump = true;
+	}
+}
+
+void ANenPuncherCharacter::Landed(const FHitResult & Hit)
+{
+	CanDoubleJump = false;
+	FRotator CurrentRotation = GetActorRotation();
+	SetActorRotation(FRotator(0, CurrentRotation.Yaw, CurrentRotation.Roll));
+	State = StateEnum::Default;
 }
 
 void ANenPuncherCharacter::AddAttackImpulse(float ImpulseForce, bool IsGroundAttack)

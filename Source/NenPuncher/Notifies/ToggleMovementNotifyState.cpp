@@ -3,7 +3,6 @@
 #include "ToggleMovementNotifyState.h"
 
 #include "Components/SkeletalMeshComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "Player/NenPuncherCharacter.h"
 
