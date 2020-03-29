@@ -19,16 +19,27 @@ class ANenPuncherCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	/** Right hand collider */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+		class USphereComponent* RightHandCollider;
+	/** Left hand collider */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+		class USphereComponent* LeftHandCollider;
+
+	/** Health component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+		class UHealthComponent* HealthComponent;
+
 	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 		class USpringArmComponent* CameraBoom;
 
 	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 		class UCameraComponent* FollowCamera;
 
 	/** Charging Particles */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 		class UParticleSystemComponent* ChargedParticlesComponent;
 public:
 	ANenPuncherCharacter();
@@ -67,6 +78,8 @@ private:
 	void ReleasePunch();
 
 	void CustomJump();
+
+	void GetOverlappingEnemies(int DamageAmount, bool IsRightHand = true);
 
 	/** Variables */
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
@@ -119,5 +132,7 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	/** Returns HealthComponent subobject **/
+	FORCEINLINE class UHealthComponent* GetHealthComponent() const { return HealthComponent; }
 };
 

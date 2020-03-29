@@ -4,6 +4,7 @@
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -15,6 +16,7 @@
 #include "Particles/ParticleSystemComponent.h"
 
 #include "Enemy.h"
+#include "HealthComponent.h"
 
 #include <Runtime/Engine/Classes/Engine/Engine.h>
 
@@ -39,6 +41,17 @@ ANenPuncherCharacter::ANenPuncherCharacter()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
+
+	// Setup colliders for each hand
+	RightHandCollider = CreateDefaultSubobject<USphereComponent>("RightHandCollider");
+	RightHandCollider->SetupAttachment(GetMesh(), FName("RightHand"));
+	RightHandCollider->SetRelativeLocation(FVector(-20, 0, 0));
+	LeftHandCollider = CreateDefaultSubobject<USphereComponent>("LeftHandCollider");
+	LeftHandCollider->SetupAttachment(GetMesh(), FName("LeftHand"));
+	LeftHandCollider->SetRelativeLocation(FVector(-20, 0, 0));
+
+	// Create health component
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>("HealthComponent");
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -207,6 +220,22 @@ AActor* ANenPuncherCharacter::GetClosestEnemy()
 	}
 	
 	return ClosestActor;
+}
+
+void ANenPuncherCharacter::GetOverlappingEnemies(int DamageAmount, bool IsRightHand)
+{
+	TArray<AActor*> Enemies;
+	if (IsRightHand)
+		RightHandCollider->GetOverlappingActors(Enemies, TSubclassOf<AEnemy>());
+	else
+		LeftHandCollider->GetOverlappingActors(Enemies, TSubclassOf<AEnemy>());
+
+	for (auto e : Enemies)
+	{
+		auto Enemy = Cast<AEnemy>(e);
+		if (Enemy)
+			Enemy->GetHealthComponent()->Damage(DamageAmount);
+	}
 }
 
 void ANenPuncherCharacter::SetStateDefault()
