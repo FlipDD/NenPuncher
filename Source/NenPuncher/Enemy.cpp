@@ -2,10 +2,9 @@
 
 #include "Enemy.h"
 
-#include "Components/Widget.h"
+#include "Components/WidgetComponent.h"
 
 #include "HealthComponent.h"
-#include "UI/HealthBarWidget.h"
 
 // Sets default values
 AEnemy::AEnemy()
@@ -15,10 +14,6 @@ AEnemy::AEnemy()
 
 	// Create health component
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>("HealthComponent");
-
-	/*HealthWidget = CreateDefaultSubobject<UWidget>("HealthBar");
-	HealthWidget->AddToRoot();*/
-	//HealthWidget->SetClass(TSubclassOf<UHealthBarWidget>());
 }
 
 // Called when the game starts or when spawned
@@ -32,11 +27,3 @@ void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
-
-// Called to bind functionality to input
-void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
-

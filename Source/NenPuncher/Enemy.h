@@ -15,8 +15,6 @@ class NENPUNCHER_API AEnemy : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 		class UHealthComponent* HealthComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
-		class UWidget* HealthWidget;
 public:
 	// Sets default values for this character's properties
 	AEnemy();
@@ -29,9 +27,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	/** Returns HealthComponent subobject **/
+	/** Returns HealthComponent subobject */
 	FORCEINLINE class UHealthComponent* GetHealthComponent() const { return HealthComponent; }
 };

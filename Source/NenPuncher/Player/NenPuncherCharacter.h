@@ -79,8 +79,6 @@ private:
 
 	void CustomJump();
 
-	void GetOverlappingEnemies(int DamageAmount, bool IsRightHand = true);
-
 	/** Variables */
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		bool IsComboing = false;
@@ -101,6 +99,8 @@ public:
 	void SetStateDefault();
 
 	AActor* GetClosestEnemy();
+
+	void GetOverlappingEnemies(int DamageAmount, bool IsRightHand = true);
 
 protected:
 

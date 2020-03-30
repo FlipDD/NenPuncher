@@ -1,0 +1,62 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "RotateToEnemyNotify.h"
+
+#include "Components/SkeletalMeshComponent.h"
+#include "Player/NenPuncherCharacter.h"
+
+#include "Components/TimelineComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+
+void URotateToEnemyNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
+{
+	if (MeshComp->GetOwner() != nullptr)
+	{
+		Player = Cast<ANenPuncherCharacter>(MeshComp->GetOwner());
+		if (Player != nullptr)
+		{
+			ClosestEnemy = nullptr;
+			auto ClosestEnemy = Player->GetClosestEnemy();
+			if (ClosestEnemy)
+			{
+				FOnTimelineFloat onTimelineCallback;
+
+				if (FloatCurve != NULL)
+				{
+					MyTimeline = NewObject<UTimelineComponent>(this, FName("TimelineAnimation"));
+					MyTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
+
+					MyTimeline->SetPropertySetObject(this); // Set which object the timeline should drive properties on
+					MyTimeline->SetDirectionPropertyName(FName("TimelineDirection"));
+
+					MyTimeline->SetLooping(false);
+					MyTimeline->SetTimelineLength(0.5f);
+					MyTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
+
+					MyTimeline->SetPlaybackPosition(0.0f, false);
+
+					//Add the float curve to the timeline and connect it to your timelines's interpolation function
+					onTimelineCallback.BindUFunction(this, FName{ TEXT("TimelineCallback") });
+					MyTimeline->AddInterpFloat(FloatCurve, onTimelineCallback);
+				}
+			}
+		}
+	}
+}
+
+void URotateToEnemyNotify::TimelineCallback(float val)
+{
+	float CurrentYaw = Player->GetActorRotation().Yaw;
+	FVector ThisLocation = Player->GetActorLocation();
+	FVector TargetLocation = ClosestEnemy->GetActorLocation();
+	FRotator DesiredRotation = UKismetMathLibrary::FindLookAtRotation(ThisLocation, TargetLocation);
+	FRotator InterpedRotation = FMath::RInterpTo(Player->GetActorRotation(), DesiredRotation, val, InterpSpeed);
+	FRotator NewRotation = FRotator(0, InterpedRotation.Yaw, 0);
+
+	Player->SetActorRotation(NewRotation);
+}
+
+void URotateToEnemyNotify::PlayTimeline()
+{
+}
