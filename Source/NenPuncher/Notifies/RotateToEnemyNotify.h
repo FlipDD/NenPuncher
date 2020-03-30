@@ -13,12 +13,14 @@ UCLASS()
 class NENPUNCHER_API URotateToEnemyNotify : public UAnimNotify
 {
 	GENERATED_BODY()
+
+	URotateToEnemyNotify();
 	
 public:
 	void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
 
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY()
 		class UTimelineComponent* MyTimeline;
 
 	UPROPERTY(EditAnywhere)
@@ -35,5 +37,5 @@ public:
 	UPROPERTY()
 		AActor* ClosestEnemy;
 	UPROPERTY()
-		ANenPuncherCharacter* Player;
+		class ANenPuncherCharacter* Player;
 };

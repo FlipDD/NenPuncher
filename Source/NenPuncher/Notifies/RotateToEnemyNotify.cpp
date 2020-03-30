@@ -9,6 +9,11 @@
 #include "Components/TimelineComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
+URotateToEnemyNotify::URotateToEnemyNotify()
+{
+	
+}
+
 void URotateToEnemyNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {
 	if (MeshComp->GetOwner() != nullptr)
@@ -17,21 +22,23 @@ void URotateToEnemyNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenc
 		if (Player != nullptr)
 		{
 			ClosestEnemy = nullptr;
-			auto ClosestEnemy = Player->GetClosestEnemy();
+			ClosestEnemy = Player->GetClosestEnemy();
 			if (ClosestEnemy)
 			{
-				FOnTimelineFloat onTimelineCallback;
-
+				UE_LOG(LogTemp, Warning, TEXT("Found an enemy"));
 				if (FloatCurve != NULL)
 				{
+					FOnTimelineFloat onTimelineCallback;
+
 					MyTimeline = NewObject<UTimelineComponent>(this, FName("TimelineAnimation"));
 					MyTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
 
 					MyTimeline->SetPropertySetObject(this); // Set which object the timeline should drive properties on
 					MyTimeline->SetDirectionPropertyName(FName("TimelineDirection"));
 
-					MyTimeline->SetLooping(false);
-					MyTimeline->SetTimelineLength(0.5f);
+
+					MyTimeline->SetLooping(true);
+					MyTimeline->SetTimelineLength(2.0f);
 					MyTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
 
 					MyTimeline->SetPlaybackPosition(0.0f, false);
@@ -39,6 +46,10 @@ void URotateToEnemyNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenc
 					//Add the float curve to the timeline and connect it to your timelines's interpolation function
 					onTimelineCallback.BindUFunction(this, FName{ TEXT("TimelineCallback") });
 					MyTimeline->AddInterpFloat(FloatCurve, onTimelineCallback);
+					MyTimeline->RegisterComponent();
+
+
+					MyTimeline->PlayFromStart();
 				}
 			}
 		}
@@ -55,6 +66,8 @@ void URotateToEnemyNotify::TimelineCallback(float val)
 	FRotator NewRotation = FRotator(0, InterpedRotation.Yaw, 0);
 
 	Player->SetActorRotation(NewRotation);
+
+	UE_LOG(LogTemp, Warning, TEXT("Playing timeline"));
 }
 
 void URotateToEnemyNotify::PlayTimeline()

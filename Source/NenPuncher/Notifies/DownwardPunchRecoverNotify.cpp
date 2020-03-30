@@ -17,11 +17,6 @@ void UDownwardPunchRecoverNotify::Notify(USkeletalMeshComponent* MeshComp, UAnim
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Started downward notif"));
 
-			/*if (!GetWorld())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Couldn't find the world"));
-				return;
-			}*/
 			auto Actor = Player->GetClosestEnemy();
 			if (Actor == nullptr)
 			{
